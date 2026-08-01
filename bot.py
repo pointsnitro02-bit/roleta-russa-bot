@@ -23,13 +23,17 @@ async def roleta_russa(interaction: nextcord.Interaction, balas: int, jogadores:
         await interaction.response.send_message("O número de jogadores deve ser entre 2 e 6.")
         return
     
-    if balas > 5 or balas < 1:
-        await interaction.response.send_message("O número de balas deve ser entre 1 e 5.")
+    if balas > 1:
+        await interaction.response.send_message("Apenas 1 bala deve ser escolhida. Será aleatoriamente distribuída no pente de 6!")
         return
-
+    
     players = []
-    embed = Embed(title="Roleta Russa", description="Clique para entrar no jogo!")
-    embed.add_field(name="Balas", value=f"{balas}", inline=True)
+    embed = Embed(
+        title="🔫 Roleta Russa",
+        description="Clique para entrar no jogo!",
+        color=0xff6347
+    )
+    embed.add_field(name="Balas no cilindro", value="1 em 6", inline=True)
     embed.add_field(name="Jogadores", value=f"0/{jogadores}", inline=True)
     
     view = View()
@@ -60,25 +64,23 @@ async def roleta_russa(interaction: nextcord.Interaction, balas: int, jogadores:
 
     await interaction.channel.send("O jogo vai começar!")
 
-    roleta = [False] * len(players)
-    for _ in range(balas):
-        index = random.choice([i for i, v in enumerate(roleta) if not v])
-        roleta[index] = True
+    roleta = [False] * 5 + [True]  # Um pente de 6 no qual uma posição é verdade para simular uma bala
+    random.shuffle(roleta)  # Mistura o cilindro para aumentar a aleatoriedade
 
-    for i, (jogador, acertado) in enumerate(zip(players, roleta), start=1):
+    for jogador, acertado in zip(players, roleta):
         pull_trigger_view = View()
-        pull_button = Button(label=f"Puxar o Gatilho (Tiros restantes: {i}/{len(players)})", style=ButtonStyle.danger)
+        pull_button = Button(label="Puxar o Gatilho", style=ButtonStyle.danger)
 
         async def pull_trigger(interaction):
             if interaction.user == jogador:
                 await interaction.response.defer()
                 if acertado:
-                    await interaction.followup.send(f'{jogador.mention} levou uma bala! 🌟 Estás mutado por 10 minutos.')
+                    await interaction.followup.send(f"{jogador.mention} levou uma bala! 🌟 Estás mutado por 10 minutos.")
                     await jogador.edit(mute=True)
                     await asyncio.sleep(600)
                     await jogador.edit(mute=False)
                 else:
-                    await interaction.followup.send(f'{jogador.mention} escapou desta vez! 🎉')
+                    await interaction.followup.send(f"{jogador.mention} escapou desta vez! 🎉")
             else:
                 await interaction.response.send_message("Não é sua vez!", ephemeral=True)
 
@@ -89,7 +91,7 @@ async def roleta_russa(interaction: nextcord.Interaction, balas: int, jogadores:
             embed=Embed(
                 title="Sua vez!",
                 description=f"{jogador.mention}, pressione o botão para puxar o gatilho.",
-                color=0xFF0000
+                color=0xff4500
             ),
             view=pull_trigger_view
         )
