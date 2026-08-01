@@ -28,7 +28,6 @@ async def roleta_russa(ctx, balas: int, jogadores: int):
         return
 
     players = []
-
     embed = Embed(title="Roleta Russa", description="Clique para entrar no jogo!")
     embed.add_field(name="Balas", value=f"{balas}", inline=True)
     embed.add_field(name="Jogadores", value=f"0/{jogadores}", inline=True)
@@ -53,8 +52,7 @@ async def roleta_russa(ctx, balas: int, jogadores: int):
     view.add_item(join_button)
 
     await ctx.respond(embed=embed, view=view)
-
-    await asyncio.sleep(60)  # Tempo de espera para que os jogadores entrem
+    await asyncio.sleep(60)
 
     if len(players) < 2:
         await ctx.channel.send("Não há jogadores suficientes para começar.")
@@ -96,26 +94,6 @@ async def roleta_russa(ctx, balas: int, jogadores: int):
             view=pull_trigger_view
         )
 
-        await asyncio.sleep(3 * 60)  # Tempo limite por jogador
+        await asyncio.sleep(60)  # Tempo de espera por jogador
 
 bot.run(os.getenv('DISCORD_BOT_TOKEN'))
-requirements.txt:
-
-discord.py
-Procfile:
-
-worker: python bot.py
-README.md:
-
-# Bot de Discord - Roleta Russa
-
-Um bot de Discord para jogar roleta russa interativamente.
-
-## Comando
-
-- `/roletarussa <balas> <jogadores>`: Inicia um jogo de roleta russa interativo.
-
-## Configuração
-
-- Configure o bot no [Discord Developer Portal](https://discord.com/developers/applications).
-- Certifique-se de habilitar as intenções necessárias e usar uma biblioteca que suporte slash commands.
