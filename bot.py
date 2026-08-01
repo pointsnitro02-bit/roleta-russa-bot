@@ -19,7 +19,7 @@ async def on_ready():
 
 @bot.slash_command(name='roletarussa', description='Iniciar um jogo de roleta russa')
 async def roleta_russa(interaction: nextcord.Interaction, balas: int, jogadores: int):
-    if jogadores > 6 or jogadores < 2:
+    if jogadores < 2 or jogadores > 6:
         await interaction.response.send_message("O número de jogadores deve ser entre 2 e 6.")
         return
     
@@ -32,7 +32,7 @@ async def roleta_russa(interaction: nextcord.Interaction, balas: int, jogadores:
         title="🎯 **Russian Roulette**",
         description="> Test your luck. Only one survives.\n\n"
                     "⚙️ **Cylinder**\n`1 / 6` loaded\n\n"
-                    "👥 **Players**\n`0 / {jogadores}`\n\n"
+                    f"👥 **Players**\n`0 / {jogadores}`\n\n"
                     "⚠️ *Players eliminated receive a **10-minute mute**.*",
         color=0xff6347
     )
@@ -53,6 +53,11 @@ async def roleta_russa(interaction: nextcord.Interaction, balas: int, jogadores:
                 )
                 await button_interaction.response.edit_message(embed=embed)
                 await button_interaction.followup.send(f"{button_interaction.user.mention} entrou no jogo!", ephemeral=True)
+
+                if len(players) == jogadores:
+                    # Espera 5 segundos se atingir o número máximo de jogadores
+                    await asyncio.sleep(5)
+                    await start_game(interaction, players)
             else:
                 await button_interaction.response.send_message("O jogo já está cheio!", ephemeral=True)
         else:
@@ -64,13 +69,24 @@ async def roleta_russa(interaction: nextcord.Interaction, balas: int, jogadores:
     await interaction.response.send_message(embed=embed, view=view)
 
     try:
-        await asyncio.wait_for(asyncio.sleep(60), timeout=60)  # Aguarda 1 minuto para o jogo começar/permitir que os jogadores entrem
+        # Permita que o jogo comece assim que o máximo de jogadores entrarem, ou espere até 60 segundos
+        await asyncio.wait_for(asyncio.sleep(60), timeout=60)
     except asyncio.TimeoutError:
-        if len(players) < 2:
-            await interaction.edit_original_response(content="O jogo foi encerrado por falta de jogadores suficientes.", embed=None, view=None)
-            return
+        # Timeout alcançado para espera de jogadores
+        pass
 
-    embed.description = "O jogo começou! Boa sorte a todos!"
+    if len(players) >= 2:
+        await start_game(interaction, players)
+    else:
+        await interaction.edit_original_response(content="O jogo foi encerrado por falta de jogadores suficientes.", embed=None, view=None)
+
+async def start_game(interaction: nextcord.Interaction, players):
+    embed = Embed(
+        title="🎯 **Russian Roulette**",
+        description="O jogo começou! Boa sorte a todos!",
+        color=0xff6347
+    )
+
     await interaction.edit_original_response(embed=embed, view=None)
 
     roleta = [False] * 5 + [True]
