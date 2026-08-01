@@ -54,16 +54,8 @@ async def roleta_russa(interaction: nextcord.Interaction, balas: int, jogadores:
                 await button_interaction.response.edit_message(embed=embed)
 
                 if len(players) == jogadores:
-                    # Adicione o botão para iniciar o jogo
-                    start_button = Button(label="Iniciar Jogo", style=ButtonStyle.success)
-
-                    async def start_game_callback(start_interaction: nextcord.Interaction):
-                        await start_game(start_interaction, players)
-
-                    start_button.callback = start_game_callback
-                    view.clear_items()  # Limpa o botão existente
-                    view.add_item(start_button)
-                    await button_interaction.edit_original_response(view=view)
+                    # Envia nova mensagem com o botão "Iniciar Jogo"
+                    await send_start_game_message(interaction, players)
 
             else:
                 await button_interaction.response.send_message("O jogo já está cheio!", ephemeral=True)
@@ -75,12 +67,26 @@ async def roleta_russa(interaction: nextcord.Interaction, balas: int, jogadores:
 
     await interaction.response.send_message(embed=embed, view=view)
 
-    # Espera por 60 segundos para que outros jogadores possam entrar
-    await asyncio.sleep(60)
-    if len(players) >= 2 and len(players) < jogadores:
-        await start_game(interaction, players)
-    elif len(players) < 2:
-        await interaction.edit_original_response(content="O jogo foi encerrado por falta de jogadores suficientes.", embed=None, view=None)
+async def send_start_game_message(interaction: nextcord.Interaction, players):
+    embed = Embed(
+        title="🎯 **Russian Roulette**",
+        description="Todos os jogadores entraram. Clique no botão abaixo para iniciar.",
+        color=0xff6347
+    )
+
+    start_button = Button(label="Iniciar Jogo", style=ButtonStyle.success)
+
+    async def start_game_callback(button_interaction: nextcord.Interaction):
+        if button_interaction.user in players:
+            await start_game(button_interaction, players)
+        else:
+            await button_interaction.response.send_message("Você não está participando do jogo!", ephemeral=True)
+
+    start_button.callback = start_game_callback
+    view = View()
+    view.add_item(start_button)
+
+    await interaction.followup.send(embed=embed, view=view, ephemeral=False)
 
 async def start_game(interaction: nextcord.Interaction, players):
     embed = Embed(
