@@ -38,6 +38,7 @@ async def roleta_russa(interaction: nextcord.Interaction, balas: int, jogadores:
     )
     
     view = View()
+    game_started = asyncio.Event()
 
     join_button = Button(label="Entrar", style=ButtonStyle.primary)
 
@@ -55,9 +56,9 @@ async def roleta_russa(interaction: nextcord.Interaction, balas: int, jogadores:
                 await button_interaction.followup.send(f"{button_interaction.user.mention} entrou no jogo!", ephemeral=True)
 
                 if len(players) == jogadores:
-                    # Espera 5 segundos se atingir o número máximo de jogadores
-                    await asyncio.sleep(5)
-                    await start_game(interaction, players)
+                    # Sinalize que o jogo pode começar
+                    game_started.set()
+
             else:
                 await button_interaction.response.send_message("O jogo já está cheio!", ephemeral=True)
         else:
@@ -68,17 +69,17 @@ async def roleta_russa(interaction: nextcord.Interaction, balas: int, jogadores:
 
     await interaction.response.send_message(embed=embed, view=view)
 
+    # Espera por jogadores ou até o máximo de tempo permitido
     try:
-        # Permita que o jogo comece assim que o máximo de jogadores entrarem, ou espere até 60 segundos
-        await asyncio.wait_for(asyncio.sleep(60), timeout=60)
+        await asyncio.wait_for(game_started.wait(), timeout=60)
     except asyncio.TimeoutError:
-        # Timeout alcançado para espera de jogadores
-        pass
+        # Checa se players suficientes entraram
+        if len(players) < 2:
+            await interaction.edit_original_response(content="O jogo foi encerrado por falta de jogadores suficientes.", embed=None, view=None)
+            return
 
-    if len(players) >= 2:
-        await start_game(interaction, players)
-    else:
-        await interaction.edit_original_response(content="O jogo foi encerrado por falta de jogadores suficientes.", embed=None, view=None)
+    # Se pelo menos dois jogadores entraram, inicie o jogo
+    await start_game(interaction, players)
 
 async def start_game(interaction: nextcord.Interaction, players):
     embed = Embed(
