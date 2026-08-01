@@ -38,7 +38,6 @@ async def roleta_russa(interaction: nextcord.Interaction, balas: int, jogadores:
     )
     
     view = View()
-    game_started = asyncio.Event()
 
     join_button = Button(label="Entrar", style=ButtonStyle.primary)
 
@@ -53,11 +52,18 @@ async def roleta_russa(interaction: nextcord.Interaction, balas: int, jogadores:
                     "⚠️ *Players eliminated receive a **10-minute mute**.*"
                 )
                 await button_interaction.response.edit_message(embed=embed)
-                await button_interaction.followup.send(f"{button_interaction.user.mention} entrou no jogo!", ephemeral=True)
 
                 if len(players) == jogadores:
-                    # Sinalize que o jogo pode começar
-                    game_started.set()
+                    # Adicione o botão para iniciar o jogo
+                    start_button = Button(label="Iniciar Jogo", style=ButtonStyle.success)
+
+                    async def start_game_callback(start_interaction: nextcord.Interaction):
+                        await start_game(start_interaction, players)
+
+                    start_button.callback = start_game_callback
+                    view.clear_items()  # Limpa o botão existente
+                    view.add_item(start_button)
+                    await button_interaction.edit_original_response(view=view)
 
             else:
                 await button_interaction.response.send_message("O jogo já está cheio!", ephemeral=True)
@@ -69,17 +75,12 @@ async def roleta_russa(interaction: nextcord.Interaction, balas: int, jogadores:
 
     await interaction.response.send_message(embed=embed, view=view)
 
-    # Espera por jogadores ou até o máximo de tempo permitido
-    try:
-        await asyncio.wait_for(game_started.wait(), timeout=60)
-    except asyncio.TimeoutError:
-        # Checa se players suficientes entraram
-        if len(players) < 2:
-            await interaction.edit_original_response(content="O jogo foi encerrado por falta de jogadores suficientes.", embed=None, view=None)
-            return
-
-    # Se pelo menos dois jogadores entraram, inicie o jogo
-    await start_game(interaction, players)
+    # Espera por 60 segundos para que outros jogadores possam entrar
+    await asyncio.sleep(60)
+    if len(players) >= 2 and len(players) < jogadores:
+        await start_game(interaction, players)
+    elif len(players) < 2:
+        await interaction.edit_original_response(content="O jogo foi encerrado por falta de jogadores suficientes.", embed=None, view=None)
 
 async def start_game(interaction: nextcord.Interaction, players):
     embed = Embed(
