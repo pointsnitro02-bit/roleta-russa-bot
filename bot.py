@@ -73,31 +73,33 @@ async def roleta_russa(interaction: nextcord.Interaction, balas: int, jogadores:
         pull_trigger_view = View()
         pull_button = Button(label="Puxar o Gatilho", style=ButtonStyle.danger)
         
-        async def pull_trigger(button_interaction: nextcord.Interaction, jogador=jogador, acertado=acertado):
-            if button_interaction.user == jogador:
+        async def pull_trigger(button_interaction: nextcord.Interaction, current_jogador=jogador, current_acertado=acertado):
+            if button_interaction.user == current_jogador:
                 await button_interaction.response.edit_message(view=None)
-                if acertado:
-                    embed.description = f"{jogador.mention} levou uma bala! 🌟 Estás mutado por 10 minutos."
+                if current_acertado:
+                    embed.description = f"{current_jogador.mention} levou uma bala! 🌟 Estás mutado por 10 minutos."
                     await button_interaction.edit_original_response(embed=embed)
-                    await jogador.edit(mute=True)
+                    await current_jogador.edit(mute=True)
 
                     # Mantenha o jogador mutado por 10 minutos
                     await asyncio.sleep(600)
                     try:
-                        await jogador.edit(mute=False)
+                        await current_jogador.edit(mute=False)
                     except Exception as e:
-                        print(f"Erro ao desmutar {jogador}: {e}")
-                    
-                    break  # Encerra o jogo, pois alguém foi acertado
+                        print(f"Erro ao desmutar {current_jogador}: {e}")
                 else:
-                    embed.description = f"{jogador.mention} escapou desta vez! 🎉"
+                    embed.description = f"{current_jogador.mention} escapou desta vez! 🎉"
                     await button_interaction.edit_original_response(embed=embed)
+
+                # Ao fim de interação, independente de acertado ou não
+                return
             else:
                 await button_interaction.response.send_message("Não é sua vez!", ephemeral=True)
 
         pull_button.callback = pull_trigger
         pull_trigger_view.add_item(pull_button)
 
+        # Aguarda a interação com o botão de puxar o gatilho
         embed.description = f"{jogador.mention}, pressione o botão para puxar o gatilho."
         await interaction.edit_original_response(embed=embed, view=pull_trigger_view)
 
