@@ -4,7 +4,6 @@ from nextcord.ext import commands
 from nextcord import Intents, Embed, ButtonStyle
 from nextcord.ui import Button, View
 import random
-import asyncio
 
 intents = Intents.default()
 intents.messages = True
@@ -56,46 +55,47 @@ async def roleta_russa(interaction: nextcord.Interaction, balas: int, jogadores:
     view.add_item(join_button)
 
     await interaction.response.send_message(embed=embed, view=view)
-    await asyncio.sleep(60)
+
+    await asyncio.sleep(60)  # Aguarda 1 minuto para o jogo começar/permitir que os jogadores entrem
 
     if len(players) < 2:
-        await interaction.channel.send("Não há jogadores suficientes para começar.")
+        await interaction.edit_original_response(content="Não há jogadores suficientes para começar.", embed=embed, view=None)
         return
 
-    await interaction.channel.send("O jogo vai começar!")
+    embed.description = "O jogo começou! Boa sorte a todos!"
+    await interaction.edit_original_response(embed=embed, view=None)
 
     roleta = [False] * 5 + [True]  # Um pente de 6 no qual uma posição é verdade para simular uma bala
-    random.shuffle(roleta)  # Mistura o cilindro para aumentar a aleatoriedade
+    random.shuffle(roleta)  # Mistura o cilindro para intensificar a aleatoriedade
 
     for jogador, acertado in zip(players, roleta):
         pull_trigger_view = View()
         pull_button = Button(label="Puxar o Gatilho", style=ButtonStyle.danger)
-
-        async def pull_trigger(interaction):
+        
+        async def pull_trigger(interaction, jogador=jogador, acertado=acertado):
             if interaction.user == jogador:
-                await interaction.response.defer()
+                await interaction.response.edit_message(view=None)
                 if acertado:
-                    await interaction.followup.send(f"{jogador.mention} levou uma bala! 🌟 Estás mutado por 10 minutos.")
+                    embed.description = f"{jogador.mention} levou uma bala! 🌟 Estás mutado por 10 minutos."
+                    await interaction.edit_original_response(embed=embed)
                     await jogador.edit(mute=True)
-                    await asyncio.sleep(600)
-                    await jogador.edit(mute=False)
                 else:
-                    await interaction.followup.send(f"{jogador.mention} escapou desta vez! 🎉")
+                    embed.description = f"{jogador.mention} escapou desta vez! 🎉"
+                    await interaction.edit_original_response(embed=embed)
             else:
                 await interaction.response.send_message("Não é sua vez!", ephemeral=True)
 
         pull_button.callback = pull_trigger
         pull_trigger_view.add_item(pull_button)
 
-        await interaction.channel.send(
-            embed=Embed(
-                title="Sua vez!",
-                description=f"{jogador.mention}, pressione o botão para puxar o gatilho.",
-                color=0xff4500
-            ),
-            view=pull_trigger_view
-        )
+        embed.description = f"{jogador.mention}, pressione o botão para puxar o gatilho."
+        await interaction.edit_original_response(embed=embed, view=pull_trigger_view)
 
-        await asyncio.sleep(60)  # Tempo de espera por jogador
+    # Caso um jogador leve um tiro, este seria o loop breaking, e a mute execução por 10 minutos
+    await asyncio.sleep(600)  # 10 minutos de mudo para o jogador que levou o tiro
+    try:
+        await jogador.edit(mute=False)  # Excluído do específico usuário
+    except:
+        pass
 
 bot.run(os.getenv('DISCORD_BOT_TOKEN'))
