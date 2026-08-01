@@ -29,12 +29,13 @@ async def roleta_russa(interaction: nextcord.Interaction, balas: int, jogadores:
     
     players = []
     embed = Embed(
-        title="🔫 Roleta Russa",
-        description="Clique para entrar no jogo!",
+        title="🎯 **Russian Roulette**",
+        description="> Test your luck. Only one survives.\n\n"
+                    "⚙️ **Cylinder**\n`1 / 6` loaded\n\n"
+                    "👥 **Players**\n`0 / {jogadores}`\n\n"
+                    "⚠️ *Players eliminated receive a **10-minute mute**.*",
         color=0xff6347
     )
-    embed.add_field(name="Balas no cilindro", value="1 em 6", inline=True)
-    embed.add_field(name="Jogadores", value=f"0/{jogadores}", inline=True)
     
     view = View()
 
@@ -44,7 +45,12 @@ async def roleta_russa(interaction: nextcord.Interaction, balas: int, jogadores:
         if button_interaction.user not in players:
             if len(players) < jogadores:
                 players.append(button_interaction.user)
-                embed.set_field_at(1, name="Jogadores", value=f"{len(players)}/{jogadores}", inline=True)
+                embed.description = (
+                    "> Test your luck. Only one survives.\n\n"
+                    "⚙️ **Cylinder**\n`1 / 6` loaded\n\n"
+                    f"👥 **Players**\n`{len(players)} / {jogadores}`\n\n"
+                    "⚠️ *Players eliminated receive a **10-minute mute**.*"
+                )
                 await button_interaction.response.edit_message(embed=embed)
                 await button_interaction.followup.send(f"{button_interaction.user.mention} entrou no jogo!", ephemeral=True)
             else:
@@ -57,22 +63,23 @@ async def roleta_russa(interaction: nextcord.Interaction, balas: int, jogadores:
 
     await interaction.response.send_message(embed=embed, view=view)
 
-    await asyncio.sleep(60)  # Aguarda 1 minuto para o jogo começar/permitir que os jogadores entrem
-
-    if len(players) < 2:
-        await interaction.edit_original_response(content="Não há jogadores suficientes para começar.", embed=embed, view=None)
-        return
+    try:
+        await asyncio.wait_for(asyncio.sleep(60), timeout=60)  # Aguarda 1 minuto para o jogo começar/permitir que os jogadores entrem
+    except asyncio.TimeoutError:
+        if len(players) < 2:
+            await interaction.edit_original_response(content="O jogo foi encerrado por falta de jogadores suficientes.", embed=None, view=None)
+            return
 
     embed.description = "O jogo começou! Boa sorte a todos!"
     await interaction.edit_original_response(embed=embed, view=None)
 
-    roleta = [False] * 5 + [True]  # Um tambor de 6 onde uma posição é verdadeira para simular uma bala
-    random.shuffle(roleta)  # Mistura o cilindro para intensificar a aleatoriedade
+    roleta = [False] * 5 + [True]
+    random.shuffle(roleta)
 
     for jogador, acertado in zip(players, roleta):
         pull_trigger_view = View()
         pull_button = Button(label="Puxar o Gatilho", style=ButtonStyle.danger)
-        
+
         async def pull_trigger(button_interaction: nextcord.Interaction, current_jogador=jogador, current_acertado=acertado):
             if button_interaction.user == current_jogador:
                 await button_interaction.response.edit_message(view=None)
@@ -81,7 +88,6 @@ async def roleta_russa(interaction: nextcord.Interaction, balas: int, jogadores:
                     await button_interaction.edit_original_response(embed=embed)
                     await current_jogador.edit(mute=True)
 
-                    # Mantenha o jogador mutado por 10 minutos
                     await asyncio.sleep(600)
                     try:
                         await current_jogador.edit(mute=False)
@@ -91,7 +97,6 @@ async def roleta_russa(interaction: nextcord.Interaction, balas: int, jogadores:
                     embed.description = f"{current_jogador.mention} escapou desta vez! 🎉"
                     await button_interaction.edit_original_response(embed=embed)
 
-                # Ao fim de interação, independente de acertado ou não
                 return
             else:
                 await button_interaction.response.send_message("Não é sua vez!", ephemeral=True)
@@ -99,8 +104,7 @@ async def roleta_russa(interaction: nextcord.Interaction, balas: int, jogadores:
         pull_button.callback = pull_trigger
         pull_trigger_view.add_item(pull_button)
 
-        # Aguarda a interação com o botão de puxar o gatilho
-        embed.description = f"{jogador.mention}, pressione o botão para puxar o gatilho."
+        embed.description = f"{jogador.mention}, pronto para testar sua sorte?"
         await interaction.edit_original_response(embed=embed, view=pull_trigger_view)
 
 bot.run(os.getenv('DISCORD_BOT_TOKEN'))
