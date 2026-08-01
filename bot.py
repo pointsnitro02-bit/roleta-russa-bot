@@ -1,8 +1,8 @@
 import os
-import discord
-from discord.ext import commands
-from discord import Intents, Embed, ButtonStyle
-from discord.ui import Button, View
+import nextcord
+from nextcord.ext import commands
+from nextcord import Intents, Embed, ButtonStyle
+from nextcord.ui import Button, View
 import random
 import asyncio
 
@@ -11,20 +11,20 @@ intents.messages = True
 intents.guilds = True
 intents.members = True
 
-bot = commands.Bot(command_prefix='!', intents=intents)
+bot = commands.Bot(intents=intents)
 
 @bot.event
 async def on_ready():
     print(f'Bot conectado como {bot.user}')
 
 @bot.slash_command(name='roletarussa', description='Iniciar um jogo de roleta russa')
-async def roleta_russa(ctx, balas: int, jogadores: int):
+async def roleta_russa(interaction: nextcord.Interaction, balas: int, jogadores: int):
     if jogadores > 6 or jogadores < 2:
-        await ctx.respond("O número de jogadores deve ser entre 2 e 6.")
+        await interaction.response.send_message("O número de jogadores deve ser entre 2 e 6.")
         return
     
     if balas > 5 or balas < 1:
-        await ctx.respond("O número de balas deve ser entre 1 e 5.")
+        await interaction.response.send_message("O número de balas deve ser entre 1 e 5.")
         return
 
     players = []
@@ -51,14 +51,14 @@ async def roleta_russa(ctx, balas: int, jogadores: int):
     join_button.callback = join_callback
     view.add_item(join_button)
 
-    await ctx.respond(embed=embed, view=view)
+    await interaction.response.send_message(embed=embed, view=view)
     await asyncio.sleep(60)
 
     if len(players) < 2:
-        await ctx.channel.send("Não há jogadores suficientes para começar.")
+        await interaction.channel.send("Não há jogadores suficientes para começar.")
         return
 
-    await ctx.channel.send("O jogo vai começar!")
+    await interaction.channel.send("O jogo vai começar!")
 
     roleta = [False] * len(players)
     for _ in range(balas):
@@ -85,7 +85,7 @@ async def roleta_russa(ctx, balas: int, jogadores: int):
         pull_button.callback = pull_trigger
         pull_trigger_view.add_item(pull_button)
 
-        await ctx.send(
+        await interaction.channel.send(
             embed=Embed(
                 title="Sua vez!",
                 description=f"{jogador.mention}, pressione o botão para puxar o gatilho.",
