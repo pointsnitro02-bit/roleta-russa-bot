@@ -1,1 +1,3 @@
-discord.py
+nextcord  # Biblioteca principal para o bot do Discord
+python-dotenv  # Para carregamento de variáveis de ambiente do .env
+aiohttp  # Frequentemente necessário para operações assíncronas de rede
